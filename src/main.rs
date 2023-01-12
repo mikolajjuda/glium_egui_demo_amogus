@@ -10,7 +10,7 @@ fn main() {
     let cb = glutin::ContextBuilder::new();
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-    let app = App::new();
+    let app = App::new(&display);
 
     event_loop.run(move |event, _, control_flow| {
         control_flow.set_poll();
