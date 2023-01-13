@@ -58,13 +58,20 @@ const VERTEX_DATA: &[VertexData] = &[
 
 const INDEX_DATA: &[u8] = &[0, 1, 3, 3, 1, 2];
 
-#[derive(Copy, Clone)]
-pub struct AmogusData {
-    world_position: [f32; 2],
+#[derive(Copy, Clone, Debug)]
+struct PerAmogusVertexData {
+    model_matrix: [[f32; 4]; 4],
     color: [f32; 3],
     animation_frame: u8,
 }
-glium::implement_vertex!(AmogusData, world_position, color, animation_frame);
+glium::implement_vertex!(PerAmogusVertexData, model_matrix, color, animation_frame);
+
+pub struct AmogusData {
+    pub world_position: nalgebra::Vector2<f32>,
+    pub size: f32,
+    pub color: [f32; 3],
+    pub animation_frame: u8,
+}
 
 pub struct AmogusRenderer {
     vertex_buffer: glium::VertexBuffer<VertexData>,
@@ -72,6 +79,7 @@ pub struct AmogusRenderer {
     shader: glium::Program,
     amogus_animation_texture: glium::texture::Texture2dArray,
     amogus_animation_dyeing_mask_texture: glium::texture::Texture2dArray,
+    pub frames_number: u8,
 }
 
 impl AmogusRenderer {
@@ -93,25 +101,63 @@ impl AmogusRenderer {
         let amogus_animation_texture = texture2darray_from_png_bytes(TEXTURE_AMOGUS, display);
         let amogus_animation_dyeing_mask_texture =
             texture2darray_from_png_bytes(TEXTURE_AMOGUS_DYEING_MASK, display);
+        let frames_number = amogus_animation_texture.array_size() as u8;
         Self {
             vertex_buffer,
             index_buffer,
             shader,
             amogus_animation_texture,
             amogus_animation_dyeing_mask_texture,
+            frames_number,
         }
     }
 
-    pub fn draw(&self, frame: &mut glium::Frame) {
+    pub fn draw(
+        &self,
+        display: &glium::Display,
+        frame: &mut glium::Frame,
+        amogsuses_data: Vec<AmogusData>,
+    ) {
+        let projection_matrix = nalgebra::Orthographic3::new(
+            0.0,
+            frame.get_dimensions().0 as f32,
+            0.0,
+            frame.get_dimensions().1 as f32,
+            -1.0,
+            1.0,
+        );
+        let projection_matrix_array: [[f32; 4]; 4] = *projection_matrix.as_matrix().as_ref();
+
+        let amogus_instances: Vec<PerAmogusVertexData> = amogsuses_data
+            .iter()
+            .map(|single_amogus_data| {
+                let mut model_matrix: nalgebra::Matrix4<f32> = nalgebra::Matrix4::identity();
+                model_matrix.append_scaling_mut(single_amogus_data.size / 2.0);
+                model_matrix.append_translation_mut(&nalgebra::Vector3::new(
+                    single_amogus_data.world_position.x,
+                    single_amogus_data.world_position.y,
+                    0.0,
+                ));
+
+                PerAmogusVertexData {
+                    model_matrix: *model_matrix.as_ref(),
+                    color: single_amogus_data.color,
+                    animation_frame: single_amogus_data.animation_frame,
+                }
+            })
+            .collect();
+        // println!("{:?}", amogus_instances[0].model_matrix);
+        let instance_buffer =
+            glium::vertex::VertexBuffer::new(display, amogus_instances.as_slice()).unwrap();
         frame
             .draw(
-                &self.vertex_buffer,
+                (&self.vertex_buffer, instance_buffer.per_instance().unwrap()),
                 &self.index_buffer,
                 &self.shader,
                 &glium::uniform! {
+                    projection: projection_matrix_array,
                     tex_amogus: self.amogus_animation_texture.sampled(),
                     tex_amogus_dyeing_mask: self.amogus_animation_dyeing_mask_texture.sampled(),
-                    anim_frame: 0u8
                 },
                 &glium::DrawParameters {
                     blend: glium::Blend::alpha_blending(),
