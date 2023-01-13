@@ -146,7 +146,6 @@ impl AmogusRenderer {
                 }
             })
             .collect();
-        // println!("{:?}", amogus_instances[0].model_matrix);
         let instance_buffer =
             glium::vertex::VertexBuffer::new(display, amogus_instances.as_slice()).unwrap();
         frame

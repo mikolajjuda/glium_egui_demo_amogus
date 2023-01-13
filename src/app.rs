@@ -27,7 +27,7 @@ impl App {
                 pos: nalgebra::Vector2::new(100.0, 100.0),
                 color: [1.0, 0.0, 1.0],
                 animation_frame: 4,
-                twerks_per_second: 4.0,
+                twerks_per_second: 6.0,
                 last_frame_switch: Instant::now(),
             }],
         }
