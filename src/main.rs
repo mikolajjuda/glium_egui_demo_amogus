@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use glium::glutin;
 
 mod app;
@@ -13,6 +15,8 @@ fn main() {
 
     let mut app = App::new(&display);
 
+    let mut last_update = Instant::now();
+
     event_loop.run(move |event, _, control_flow| {
         control_flow.set_poll();
         match event {
@@ -24,7 +28,13 @@ fn main() {
             },
             glutin::event::Event::MainEventsCleared => {
                 display.gl_window().window().request_redraw();
-                app.update();
+                let window_size = display.gl_window().window().inner_size();
+                app.update(
+                    Instant::now().duration_since(last_update).as_secs_f32(),
+                    window_size.width as f32,
+                    window_size.height as f32,
+                );
+                last_update = Instant::now();
             }
             glutin::event::Event::RedrawRequested(_) => {
                 let mut target = display.draw();
