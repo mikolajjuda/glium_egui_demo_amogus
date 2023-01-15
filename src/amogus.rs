@@ -1,5 +1,4 @@
 use glium::Surface;
-use glium::{self};
 use image::GenericImage;
 
 const TEXTURE_AMOGUS: &[u8] = include_bytes!("../resources/amogus.png");
